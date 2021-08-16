@@ -1,0 +1,56 @@
+--Stworz procedure, ktora:
+--> Zmienia status gracza na w 'In Queue'
+--> Jezeli w kolejce jest 6 graczy, którzy mają tą samą rangę, co gracza próbujący dołączyć do kolejki, wtedy utworzy nowa gre
+--> Trzech pierwszy graczy doda do drużyny czerwonych, trzech ostatnich do druzyny niebieskich
+--> Procedura powinna zweryfikowac czy gracz chcacy dolaczyc do kolejki nie ma aktualnie nadanej zadnej kary - jezeli ma powinien pojawic sie stosowny komunikat, a cala procedura powinna zakonczyc sie z bledem
+
+ALTER PROCEDURE QUEUE_UP
+	@NICKNAME VARCHAR(30)
+AS
+	BEGIN
+	DECLARE @ID_ENTERED_PLAYER INT, @ID_RANK_ENTERED_PLAYER INT
+	SELECT @ID_ENTERED_PLAYER = ID_PLAYER FROM PLAYER WHERE NICKNAME = @NICKNAME
+	SELECT @ID_RANK_ENTERED_PLAYER = ID_RANK FROM PLAYER WHERE NICKNAME = @NICKNAME
+	IF EXISTS (SELECT 1 FROM PLAYER INNER JOIN PLAYER_ACC_HIST ON PLAYER_ACC_HIST.ID_PLAYER = PLAYER.ID_PLAYER INNER JOIN ACC_HIST ON ACC_HIST.ID_SUSPENSION = PLAYER_ACC_HIST.ID_SUSPENSION WHERE PLAYER.NICKNAME = @NICKNAME AND ACC_HIST.TYPE = 'BAN' AND END_SUSPENSION > GETDATE()) -- Sprawdzamy, czy gracz ma bana
+	BEGIN
+		PRINT 'THE PLAYER IS ALREADY SUSPENDED WITH BAN. YOU ARE NOT ALLOWED TO QUEUE UP!'
+	END
+	ELSE
+	BEGIN
+		UPDATE PLAYER SET STATUS = 'IN_QUEUE' WHERE NICKNAME = @NICKNAME -- Zmiana statusu gracza
+		DECLARE @NUMBER_OF_QUEUED_PLAYERS INT 
+		SELECT @NUMBER_OF_QUEUED_PLAYERS = COUNT(*) FROM PLAYER WHERE STATUS = 'IN_QUEUE' AND ID_RANK = (SELECT ID_RANK FROM PLAYER WHERE NICKNAME = @NICKNAME)
+        PRINT '' + CAST(@NUMBER_OF_QUEUED_PLAYERS AS VARCHAR(30))
+		IF @NUMBER_OF_QUEUED_PLAYERS > 5 -- Sprawdzamy czy jest przynajmniej 6 graczy w kolejce
+		BEGIN
+            PRINT 'AAAA'
+			-- Tworzenie nowej gry
+			DECLARE @NEW_GAME_ID INT, @BLUE_TEAM_ID INT, @RED_TEAM_ID INT
+			SELECT @BLUE_TEAM_ID = ID_TEAM FROM TEAM WHERE NAME = 'BLUE'
+			SELECT @RED_TEAM_ID = ID_TEAM FROM TEAM WHERE NAME = 'RED'
+			SELECT @NEW_GAME_ID = ISNULL(MAX(ID_GAME), 0) FROM GAME
+			SET @NEW_GAME_ID = @NEW_GAME_ID + 1
+
+            DROP TABLE IF EXISTS TMP
+            CREATE TABLE #TMP (
+                ID_PLAYER INT NULL,
+                ID_GAME INT NULL,
+                ID_TEAM INT NULL,
+                START_GAME DATE NULL,
+                END_GAME DATE NULL,
+                ID_WINNER INT NULL
+            )
+
+            INSERT INTO #TMP (ID_PLAYER, ID_GAME, ID_TEAM, START_GAME, END_GAME, ID_WINNER) (SELECT TOP 5 PLAYER.ID_player, @NEW_GAME_ID, NULL, GETDATE(), NULL, NULL FROM PLAYER WHERE PLAYER.Nickname != @NICKNAME AND STATUS = 'IN_QUEUE' AND ID_RANK = @ID_RANK_ENTERED_PLAYER)
+            INSERT INTO #TMP (ID_GAME, ID_PLAYER, ID_TEAM, START_GAME, END_GAME, ID_WINNER) VALUES (@NEW_GAME_ID, @ID_ENTERED_PLAYER, NULL, GETDATE(), NULL, NULL)
+            UPDATE #TMP SET ID_TEAM = @BLUE_TEAM_ID
+            UPDATE #TMP SET ID_TEAM = @RED_TEAM_ID WHERE ID_PLAYER IN (SELECT TOP 3 ID_PLAYER FROM #TMP)
+
+			select * from #tmp
+            INSERT INTO GAME (ID_player, ID_GAME, ID_Team, Start_Match, End_Match, ID_Team_Winner) SELECT * FROM #TMP
+            DELETE FROM #TMP
+
+            SELECT * FROM GAME
+		END
+	END
+	END
