@@ -4,7 +4,7 @@
 --> Zmieni status dodanych graczy na 'In Game'
 
 --Dla update'a:
---> Jedyne kolumny, ktora mozna edytowac to kolumny: end_match oraz id_team_winner, jezeli wartoscia jest null
+--> Jedyne kolumny, ktora mozna edytowac to kolumny: end_match oraz id_team_winner
 --> Przy aktualizowaniu wartosci z kolumny result_match należy zmienić wartość kolumny blue_essence - za wygraną (V) otrzymujemy 100BE*lvl, za przegrana (D) dostajemy 5BE*lvl. --Wartosc aktualnego MMR kazdego gracza rowniez powinna byc zaktualizowana w zaleznosci od roznicy (sredniego mmr) gracza w z kazdej z druzyn.
 --> Gracz z rangą unranked powinien dostać o 30 punktów MMR więcej za wygraną i tracić o 15 punktów mniej za przegraną
 --> Po zaktualnizowaniu wyniku meczy należy zmienić status gracza z 'In Queue' na 'Online'
@@ -76,17 +76,24 @@ AS
 				IF COLUMNS_UPDATED()&1 = 1 OR COLUMNS_UPDATED()&2 = 2 OR COLUMNS_UPDATED()&4 = 4 OR COLUMNS_UPDATED()&8 = 8
 				BEGIN
 					PRINT 'NIE MOZNA EDYTOWAC NASTEPUJACYCH KOLUMN: ID_GAME, PLAYER_ID, ID_TEAM, START_MATCH! DANE ZOSTANA WYCOFANE'
-					DECLARE CUR CURSOR FOR SELECT ID_GAME, ID_PLAYER, ID_TEAM, START_MATCH, END_MATCH, ID_TEAM_WINNER FROM DELETED
+					DECLARE CUR CURSOR FOR SELECT ID_GAME, ID_PLAYER, ID_TEAM, START_MATCH, END_MATCH, ID_TEAM_WINNER FROM INSERTED
+                    DECLARE @IN_ID_GAME INT, @IN_ID_PLAYER INT, @IN_ID_TEAM INT, @IN_START_MATCH DATE, @IN_END_MATCH DATE, @IN_ID_TEAM_WINNER INT
+                    DECLARE CUR1 CURSOR FOR SELECT ID_GAME, ID_PLAYER, ID_TEAM, START_MATCH, END_MATCH, ID_TEAM_WINNER FROM DELETED
 					OPEN CUR
+                    OPEN CUR1
 					FETCH NEXT FROM CUR INTO @ID_GAME, @ID_PLAYER, @ID_TEAM, @START_MATCH, @END_MATCH, @ID_TEAM_WINNER
+                    FETCH NEXT FROM CUR1 INTO @IN_ID_GAME, @IN_ID_PLAYER, @IN_ID_TEAM, @IN_START_MATCH, @IN_END_MATCH, @IN_ID_TEAM_WINNER
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
 						DELETE FROM GAME WHERE ID_GAME = @ID_GAME AND ID_PLAYER = @ID_PLAYER
-						INSERT INTO GAME (ID_GAME, ID_PLAYER, ID_TEAM, START_MATCH, END_MATCH, ID_TEAM_WINNER) VALUES (@ID_GAME, @ID_PLAYER, @ID_TEAM, @START_MATCH, @END_MATCH, @ID_TEAM_WINNER)
+						INSERT INTO GAME (ID_GAME, ID_PLAYER, ID_TEAM, START_MATCH, END_MATCH, ID_TEAM_WINNER) VALUES (@IN_ID_GAME, @IN_ID_PLAYER, @IN_ID_TEAM, @IN_START_MATCH, @IN_END_MATCH, @IN_ID_TEAM_WINNER)
 						FETCH NEXT FROM CUR INTO @ID_GAME, @ID_PLAYER, @ID_TEAM, @START_MATCH, @END_MATCH, @ID_TEAM_WINNER
+                        FETCH NEXT FROM CUR1 INTO @IN_ID_GAME, @IN_ID_PLAYER, @IN_ID_TEAM, @IN_START_MATCH, @IN_END_MATCH, @IN_ID_TEAM_WINNER
 					END
 					CLOSE CUR
+                    CLOSE CUR1
 					DEALLOCATE CUR
+                    DEALLOCATE CUR1
 				END
 				ELSE
 				BEGIN

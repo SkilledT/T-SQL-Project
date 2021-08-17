@@ -1,5 +1,5 @@
 -- Stworzy wyzwalacz, ktory sprawdzi aktualne (przy update'ie) MMR i przyporządkuje go do odpowiedniej rangi
--- Nowy pracownik nie może mieć rangi innej niż unranked i MMR mniejszego niż 1000
+-- Nowy GRACZ nie może mieć rangi innej niż unranked i MMR mniejszego niż 1000
 ALTER TRIGGER TR_PLAYER
 ON PLAYER
 FOR INSERT, UPDATE, DELETE
