@@ -1,11 +1,25 @@
 # T-SQL-Project
 
-Warunki zaliczenia projektu: - będą trochę zmienione
+The point of the project was to create ERD diagram, two procedures and triggers in T-SQL.
 
-Należy wygenerować bazę danych na MS SQL oraz Oracle.
-Temat dowolny (nie mniej niż 5 tabel). Tabele należy uzupełnić danymi tak, żeby zapytania SQL zwracały sensowne wyniki . 
-Napisać min. 5 zapytań z podzapytaniami do swojej bazy (w tym co najmniej 2 skorelowane) co najmniej dwa umieszczone w klauzuli where i co najmniej 2 z group by umieszczone w klauzuli having.  Dla każdego podać sensowną treść biznesową zapytań  i rozwiązanie - 2p ( tylko w MSSQL SQL-Server). Przy zapytaniach grupujących na liście having nie można  robić ograniczeń na kolumnie, po której grupujemy. Nie umieszczać podzapytania skorelowanego w klauzuli select
+Sample procedure and trigger:
 
-Napisać co najmniej 2 procedury  w T-SQL. Zadanie ma być sensowne biznesowo. W parametrach procedury nie mogą występować  klucze sztuczne ( np. id)  Na maksymalną ocenę należy  w jednej z procedur użyć kursora lub innego niebanalnego rozwiązania. Druga procedura powinna opierać się na danych z co najmniej dwóch tabel - 2p  Każda procedura powinna mieć co najmniej 15 instrukcji w ramach swojego ciała
-
-Napisać co najmniej 2 wyzwalacze  w T-SQL.  Zadanie ma być sensowne biznesowo. Na maksymalną ocenę wyzwalacze muszą działać poprawnie nawet, gdy operacje  aktywujące je dotyczą więcej niż jednego rekordu i zawierać coś więcej niż np. sprawdzenie jednego warunku i zgłoszenie błędu. - 2p  Co najmniej jeden z wyzwalaczy powinien mieć minimalnie 10 instrukcji i dotyczyć wszystkich operacji zmieniających tabelę (Insert, Update i Delete) - niezależnie.
+Procedure:  
+1. Change status of player to 'In Queue'
+2. If there are 6 players with the same rank, as the player queuing up the game is being created  
+3. First three of them are added to red team and the others to the blue team  
+4. Procedure should verify if player who is trying to queue up doesn't have any suspension on his account. If he does there should be displayed announcement about it and procedure should 5.exit with error.  
+  
+Trigger:  
+Insert:  
+1. Check if in every game there are 6 players. If not - the game should be removed.   
+2. Change status of all players to 'In Game'  
+  
+Update:  
+1. The only columns that can be update are end_match and id_team_winner if the value is null  
+2. While updating value of result_match column, value of blue_essence column should be changed - for victory (V) player gains 100BE*lvl, for defeat (D) player gains 5BE*lvl. The value of current MMR every player also should be updated depending on the difference average mmr of player in each team.  
+3. Player with rank 'unranked' should get 30 MMR points more for victory and losing 15 MMR points less for a loss.  
+4. After updating match result status of players should be changed to 'Online'  
+  
+Delete:  
+1. Games that has not been finished yet (null value in end_match) cannot be deleted.  
